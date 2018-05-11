@@ -1,0 +1,8 @@
+{
+    "zen_addr": "http://127.0.0.1:5001",
+    "client_id": 1,
+    "client_name": "j1",
+    "token": "null",
+    "reflush_timeout": 2000,
+    "tmp_dir": "/tmp"
+}
