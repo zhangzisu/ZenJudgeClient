@@ -1,0 +1,23 @@
+{
+  "name": "zenjudgeserver2",
+  "version": "1.0.0",
+  "description": "2nd gen judge server for Zen Online Judge",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "ZhangZisu",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "fs": "0.0.1-security",
+    "fs-extra": "^6.0.1",
+    "node-7z": "^0.4.0",
+    "path": "^0.12.7",
+    "randomstring": "^1.1.5",
+    "socket.io": "^2.1.0",
+    "socket.io-client": "^2.1.0",
+    "socket.io-stream": "^0.9.1",
+    "zoj-sandbox": "0.0.1"
+  }
+}
