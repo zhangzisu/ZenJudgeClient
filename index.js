@@ -20,6 +20,14 @@ global.socket = require('socket.io-client')(config.zen_addr);
 global.server_status = "free";
 global.task = null;
 
+socket.on('disconnect', function () {
+    process.exit(1);
+});
+
+socket.on('terminate', function () {
+    process.exit(1);
+});
+
 let judge = require('./judge');
 
 socket.on('connect', function () {
@@ -27,14 +35,6 @@ socket.on('connect', function () {
         token: config.token,
         id: config.client_id
     });
-});
-
-socket.on('disconnect', function () {
-    process.exit(1);
-});
-
-socket.on('terminate', function () {
-    process.exit(1);
 });
 
 socket.on('task', async function (data) {
