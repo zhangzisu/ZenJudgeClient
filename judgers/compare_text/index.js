@@ -82,7 +82,6 @@ async function judgeTestcase(data_info, user_info, language, execFile, extraFile
 		let spjResult = await runSpecialJudge(data_info, user_info, testcase.input, outputFile, testcase.output);
 		if (spjResult === null) {
 			// No Special Judge
-			console.log(`diff ${testcase.output} ${outputFile}`);
 			if (diff(testcase.output, outputFile)) {
 				result.status = 'Accepted';
 				result.score = 100;
@@ -109,7 +108,8 @@ module.exports = async function judge(pid, judge_id, data_info, user_info) {
 		total_time: 0,
 		max_memory: 0,
 		case_num: 0,
-		compiler_output: ''
+		compiler_output: '',
+		judger: config.client_name
 	};
 	async function callback(result) {
 		socket.emit('update', {
