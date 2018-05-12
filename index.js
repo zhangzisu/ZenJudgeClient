@@ -15,8 +15,9 @@ async function fsExistsAsync(path) {
 };
 
 let ss = require('socket.io-stream');
+let sc = require('socket.io-client');
 global.config = require('./config.json');
-global.socket = require('socket.io-client')(config.zen_addr);
+global.socket = sc.connect(config.zen_addr, { secure: true, reconnect: true, rejectUnauthorized: false });
 global.server_status = "free";
 global.task = null;
 
