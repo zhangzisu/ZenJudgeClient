@@ -40,6 +40,7 @@ socket.on('connect', function () {
 
 socket.on('task', async function (data) {
     server_status = 'busy';
+    uploadStatus();
     task = data;
     async function isdir(path) {
         let stat;
@@ -88,6 +89,8 @@ ss(socket).on('file', async function (stream, data) {
     });
 });
 
-setInterval(function () {
+function uploadStatus() {
     socket.emit(server_status, {});
-}, config.reflush_timeout);
+}
+
+setInterval(uploadStatus, config.reflush_timeout);
