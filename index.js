@@ -17,9 +17,16 @@ async function fsExistsAsync(path) {
 let ss = require('socket.io-stream');
 let sc = require('socket.io-client');
 global.config = require('./config.json');
-global.socket = sc.connect(config.zen_addr, { secure: true, reconnect: true, rejectUnauthorized: false });
-global.server_status = "free";
-global.task = null;
+let socket = sc.connect(config.zen_addr, { secure: true, reconnect: true, rejectUnauthorized: false });
+let server_status = "free";
+let task = null;
+
+global.updateResult = (judge_id, result) => {
+    socket.emit('update', {
+        judge_id: judge_id,
+        result: result
+    });
+};
 
 socket.on('disconnect', function () {
     process.exit(1);
@@ -52,13 +59,14 @@ socket.on('task', async function (data) {
         }
     }
     if (!await isdir('data')) await fs.mkdirAsync('data');
-    let dir = path.join('data', task.datahash);
+    let dir = path.join(__dirname, 'data', task.datahash);
     if (await isdir(dir)) {
+        let callback_code = `updateResult(${task.judge_id}, result);`;
         await judge(
-            task.pid,
-            task.judge_id,
-            { hash: task.datahash, config: task.config },
-            { code: task.code, language: task.language }
+            parseData(dir, task.config),
+            task.code,
+            task.language,
+            new Function('result', callback_code)
         );
         server_status = 'free';
     } else {
@@ -69,7 +77,7 @@ socket.on('task', async function (data) {
 const zipPath = "tmp.zip";
 ss(socket).on('file', async function (stream, data) {
     if (await fsExistsAsync(zipPath)) await fs.unlinkAsync(zipPath);
-    let dir = path.join('data', task.datahash);
+    let dir = path.join(__dirname, 'data', task.datahash);
     stream.pipe(fs.createWriteStream(zipPath)).on('finish', async function () {
         var Task = new Zip();
         var decompress = new Promise(function (resolve, reject) {
@@ -79,11 +87,12 @@ ss(socket).on('file', async function (stream, data) {
         });
         console.log(await decompress);
         if (await fsExistsAsync(zipPath)) await fs.unlinkAsync(zipPath);
+        let callback_code = `updateResult(${task.judge_id}, result);`;
         await judge(
-            task.pid,
-            task.judge_id,
-            { hash: task.datahash, config: task.config },
-            { code: task.code, language: task.language }
+            parseData(dir, task.config),
+            task.code,
+            task.language,
+            new Function('result', callback_code)
         );
         server_status = 'free';
     });
@@ -91,6 +100,17 @@ ss(socket).on('file', async function (stream, data) {
 
 function uploadStatus() {
     socket.emit(server_status, {});
+}
+
+function parseData(datadir, dataconf) {
+    for (let testcase of dataconf.testcases) {
+        for (let sth of testcase.cases) {
+            sth.input = path.join(datadir, sth.input);
+            sth.output = path.join(datadir, sth.output);
+        }
+    }
+    if (dataconf.spj) dataconf.spj = path.join(datadir, dataconf.spj);
+    return dataconf;
 }
 
 setInterval(uploadStatus, config.reflush_timeout);

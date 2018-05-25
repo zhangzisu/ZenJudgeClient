@@ -13,12 +13,15 @@ async function isFile(file) {
 }
 
 module.exports = {
-	minOutputLimit: 1024,
-	minProcessLimit: 1,
-	minMemory: 0,
-	largeStack: true,
+	process: 1,
 	getFilename(file) {
 		return file + '.cpp';
+	},
+	getRunInfo(execFile) {
+		return {
+			executable: execFile,
+			parameters: []
+		};
 	},
 	async compile(file) {
 		let parsed = path.parse(file)

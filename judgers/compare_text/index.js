@@ -4,106 +4,72 @@ let path = require('path');
 let randomstring = require("randomstring");
 let child_process = require('child_process');
 let shellEscape = require('shell-escape');
-
-let [compileSpecialJudge, runSpecialJudge] = require('./spj');
-let [sb, runTestcase, run] = require('./runner');
-let [compile] = require('./compile');
-let getLanguageModel = require('./language');
-
-global.randomPrefix = randomstring.generate();
+let [isFile] = require('./util');
+let compile = require('./compile');
+let run = require('./run');
 
 function execute() {
 	return child_process.execSync(shellEscape(Array.from(arguments)));
 }
 
-function diff(filename1, filename2) {
-	try {
-		execute('diff', '-Bb', filename1, filename2);
-		return true;
-	} catch (e) {
-		return false;
+async function verifyData(datainfo) {
+	for (let subtask of datainfo.testcases) {
+		for (let task of subtask.cases) {
+			if (!await isFile(task.input)) return 0;
+			if (!await isFile(task.output)) return 0;
+		}
 	}
+	return 1;
 }
 
 function shorterRead(fileName, maxLen) {
-	let fd = fs.openSync(fileName, 'r');
-	let len = fs.fstatSync(fd).size;
-	if (len > maxLen) {
-		let buf = Buffer.allocUnsafe(maxLen);
-		fs.readSync(fd, buf, 0, maxLen, 0);
-		let res = buf.toString() + '...';
-		fs.closeSync(fd);
-		return res;
-	} else {
-		fs.closeSync(fd);
-		return fs.readFileSync(fileName).toString();
-	}
+    let fd = fs.openSync(fileName, 'r');
+    let len = fs.fstatSync(fd).size;
+    if (len > maxLen) {
+        let buf = Buffer.allocUnsafe(maxLen);
+        fs.readSync(fd, buf, 0, maxLen, 0);
+        let res = buf.toString() + '...';
+        fs.closeSync(fd);
+        return res;
+    } else {
+        fs.closeSync(fd);
+        return fs.readFileSync(fileName).toString();
+    }
 }
 
-function shorterReadString(buffer, maxLen) {
-	let s = buffer.toString();
-	if (s.length > maxLen) return s.substr(0, maxLen) + '...';
-	else return s;
-}
-
-async function judgeTestcase(data_info, user_info, language, execFile, extraFiles, testcase) {
-	let runResult = await runTestcase(data_info, user_info, language, execFile, extraFiles, testcase);
+async function judgeTestcase(language, execFile, extraFiles, testcase, datainfo) {
+	let runResult = await run(execFile, extraFiles, testcase.input, testcase.output, language, datainfo);
 
 	let result = {
 		status: '',
-		time_used: parseInt(runResult.result.time_usage / 1000),
-		memory_used: runResult.result.memory_usage,
+		time_used: parseInt(runResult.time / 1000),
+		memory_used: runResult.memory,
 		input: shorterRead(testcase.input, 120),
 		user_out: '',
 		answer: shorterRead(testcase.output, 120),
 		score: 0
 	};
 
-	let outputFile = runResult.getOutputFile();
-	if (outputFile) {
-		result.user_out = shorterRead(outputFile, 120);
+	if (runResult.output) {
+		result.user_out = runResult.output;
 	}
 
-	let stderrFile = runResult.getStderrFile();
-	if (stderrFile) {
-		result.user_err = shorterRead(stderrFile, 1024);
+	if (runResult.stderr) {
+		result.user_err = runResult.stderr;
 	}
 
-	if (result.time_used > data_info.config.time_limit) {
-		result.status = 'Time Limit Exceeded';
-	} else if (result.memory_used > data_info.config.memory_limit * 1024) {
-		result.status = 'Memory Limit Exceeded';
-	} else if (runResult.result.status !== 'Exited Normally') {
-		result.status = runResult.result.status;
-	} else if (!outputFile) {
-		result.status = 'File Error';
-	} else {
-		// AC or WA
-		let spjResult = await runSpecialJudge(data_info, user_info, testcase.input, outputFile, testcase.output);
-		if (spjResult === null) {
-			// No Special Judge
-			if (diff(testcase.output, outputFile)) {
-				result.status = 'Accepted';
-				result.score = 100;
-			} else {
-				result.status = 'Wrong Answer';
-			}
-		} else {
-			result.score = spjResult.score;
-			if (!spjResult.success) result.status = 'Judgement Failed';
-			else if (spjResult.score === 100) result.status = 'Accepted';
-			else if (spjResult.score === 0) result.status = 'Wrong Answer';
-			else result.status = 'Partially Correct';
-			result.spj_message = shorterReadString(spjResult.message, config.spj_message_limit);
-		}
-	}
-
+	result.status = runResult.status;
+	result.score = runResult.status === 'Accepted' ? 100 : 0;
 	return result;
 }
 
-module.exports = async function judge(pid, judge_id, data_info, user_info) {
+module.exports = async function judge(datainfo, code, lang, callback) {
+	console.log(datainfo);
+	console.log(code);
+	console.log(lang);
+
 	let result = {
-		status: '',
+		status: 'Waiting',
 		score: 0,
 		total_time: 0,
 		max_memory: 0,
@@ -111,129 +77,109 @@ module.exports = async function judge(pid, judge_id, data_info, user_info) {
 		compiler_output: '',
 		judger: config.client_name
 	};
-	async function callback(result) {
-		socket.emit('update', {
-			judge_id: judge_id,
-			result: result
-		});
-	}
-	result.status = 'Compiling';
 	result.pending = true;
 	await callback(result);
 
-	// Compile the source code
-	let language = getLanguageModel(user_info.language);
-	let compileResult = await compile(user_info.code, language);
-	result.compiler_output = compileResult.output;
-
-	if (!compileResult.success) {
-		result.status = 'Compile Error';
+	if (!await verifyData(datainfo)) {
+		result.status = 'No testdata';
 		result.pending = false;
-		return await callback(result);
+		await callback(result);
+		return;
 	}
 
-	let dataconf = data_info.config;
-	if (!dataconf || !dataconf.testcases.length) {
-		result.status = 'No Testdata';
+	let language = require(`./languages/${lang}`);
+	let compile_result = await compile(code, language);
+	result.compiler_output = compile_result.output;
+
+	if (!compile_result.success) {
+		result.status = 'Compile error';
 		result.pending = false;
-		return await callback(result);
-	}
-
-	const data_dir = path.join('data', data_info.hash);
-
-	for (var subtask of dataconf.testcases) {
-		for (var testcase of subtask.cases) {
-			testcase.input = path.join(data_dir, testcase.input);
-			testcase.output = path.join(data_dir, testcase.output);
-		}
-	}
-
-	let spjCompileResult = await compileSpecialJudge(data_info, user_info);
-	if (spjCompileResult && !spjCompileResult.success) {
-		result.status = 'Judgement Failed';
-		result.spj_compiler_output = spjCompileResult.output;
-		result.pending = false;
-		return await callback(result);
+		await callback(result);
+		return;
 	}
 
 	result.subtasks = [];
-	for (let s = 0; s < dataconf.testcases.length; ++s) {
-		result.subtasks[s] = {
-			case_num: dataconf.testcases[s].cases.length,
+
+	let overallFinalStatus = null;
+
+	for (let s = 0; s < datainfo.testcases.length; ++s) {
+		result.status = 'Running on #' + (s + 1);
+
+		let subtask = datainfo.testcases[s];
+		let depend = subtask.depend || null;
+		let subtaskResult = {
 			status: 'Waiting',
 			pending: true
 		};
-	}
 
-	let overallFinalStatus = null, overallScore = 0;
-	result.score = 0;
-	for (let s = 0; s < dataconf.testcases.length; ++s) {
-		let subtask = dataconf.testcases[s];
-		let subtaskResult = result.subtasks[s];
-		let subtaskFinalStatus = null, subtaskScore = null;
+		let subtaskFinalStatus = null;
 		let caseNum = 0;
-		let skipped = false;
-		for (let testcase of subtask.cases) {
-			overallScore -= subtaskScore;
-			result.score = Math.min(100, Math.ceil(overallScore));
+		let totalScore = subtask.score;
+		let realScore = 0;
+		switch (subtask.type) {
+			case 'sum': realScore = 0;
+				break;
+			case 'min': realScore = 100;
+				break;
+			case 'mul': realScore = 1;
+				break;
+		}
 
-			if (skipped) {
-				subtaskResult[caseNum++] = {
-					status: 'Skipped',
-					input: '',
-					user_out: '',
-					answer: '',
-					score: 0
-				};
-				continue;
+		if (depend) {
+			let deps = result.subtask[deps].status;
+			if (deps !== 'Accepted') {
+				subtaskResult.score = 0;
+				subtaskResult.status = 'Skipped';
+				subtaskResult.pending = false;
 			}
+		} else {
+			for (let testcase of subtask.cases) {
+				let caseResult = await judgeTestcase(language, compile_result.execFile, compile_result.extraFiles, testcase, datainfo);
 
-			subtaskResult.status = `Running on #${caseNum + 1}`;
-			if (dataconf.testcases.length === 1) {
-				result.status = `Running on #${caseNum + 1}`;
-			} else {
-				result.status = `Running on #${s + 1}.${caseNum + 1}`;
-			}
-			subtaskResult.pending = true;
-			await callback(result);
-
-			let caseResult = await judgeTestcase(data_info, user_info, language, compileResult.execFile, compileResult.extraFiles, testcase);
-
-			switch (subtask.type) {
-				case 'min':
-					caseResult.score = caseResult.score * (subtask.score / 100);
-					subtaskScore = Math.min((subtaskScore == null) ? subtask.score : subtaskScore, caseResult.score);
+				switch (subtask.type) {
+					case 'min':
+						realScore = Math.min(realScore, caseResult.score);
+						break;
+					case 'mul':
+						realScore = realScore * (caseResult.score / 100);
+						break;
+					case 'sum':
+						realScore += caseResult.score;
+						break;
+				}
+				result.max_memory = Math.max(result.max_memory, caseResult.memory_used);
+				result.total_time += caseResult.time_used;
+				subtaskResult[caseNum++] = caseResult;
+				if (!subtaskFinalStatus && caseResult.status !== 'Accepted')
+					subtaskFinalStatus = caseResult.status;
+				if (subtask.type !== 'sum' && (caseResult.score < 1))
 					break;
-				case 'mul':
-					subtaskScore = ((subtaskScore == null) ? subtask.score : subtaskScore) * (caseResult.score / 100);
-					caseResult.score = caseResult.score * (subtask.score / 100);
-					break;
-				case 'sum': default:
-					subtask.type = 'sum';
-					caseResult.score = caseResult.score / subtask.cases.length * (subtask.score / 100);
-					subtaskScore = (subtaskScore || 0) + caseResult.score;
-					break;
-			}
-
-			overallScore += subtaskScore;
-			result.score = Math.min(100, Math.ceil(overallScore));
-			result.max_memory = Math.max(result.max_memory, caseResult.memory_used);
-			result.total_time += caseResult.time_used;
-			subtaskResult[caseNum++] = caseResult;
-			if (!subtaskFinalStatus && caseResult.status !== 'Accepted') {
-				subtaskFinalStatus = caseResult.status;
-				if (!caseResult.score && subtask.type !== 'sum') skipped = true;
 			}
 		}
-		await callback(result);
-		subtaskResult.score = subtaskScore;
+		subtaskResult.case_num = caseNum;
+		let cvtScore = 0;
+		switch (subtask.type) {
+			case 'sum':
+				cvtScore = Math.min(Math.ceil((realScore / caseNum) / 100 * totalScore), totalScore);
+				break;
+			case 'min':
+				cvtScore = Math.min(Math.ceil(realScore / 100 * totalScore), totalScore);;
+				break;
+			case 'mul':
+				cvtScore = Math.min(Math.ceil(realScore * totalScore), totalScore);
+				break;
+		}
+		subtaskResult.score = cvtScore;
+
 		if (subtaskFinalStatus) subtaskResult.status = subtaskFinalStatus;
 		else subtaskResult.status = 'Accepted';
 		subtaskResult.pending = false;
-
 		if (!overallFinalStatus && subtaskResult.status !== 'Accepted') {
 			overallFinalStatus = subtaskResult.status;
 		}
+		result.subtasks.push(subtaskResult);
+		result.score += subtaskResult.score;
+		await callback(result);
 	}
 
 	if (overallFinalStatus) result.status = overallFinalStatus;

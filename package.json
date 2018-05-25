@@ -15,9 +15,10 @@
     "node-7z": "^0.4.0",
     "path": "^0.12.7",
     "randomstring": "^1.1.5",
+    "shell-escape": "^0.2.0",
+    "simple-sandbox": "^0.3.5",
     "socket.io": "^2.1.0",
     "socket.io-client": "^2.1.0",
-    "socket.io-stream": "^0.9.1",
-    "zoj-sandbox": "0.0.1"
+    "socket.io-stream": "^0.9.1"
   }
 }

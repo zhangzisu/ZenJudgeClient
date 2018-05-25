@@ -2,23 +2,18 @@ let Promise = require('bluebird');
 let path = require('path');
 let child_process = Promise.promisifyAll(require('child_process'));
 let fs = Promise.promisifyAll(require('fs'));
-
-async function isFile(file) {
-	try {
-		let stat = await fs.statAsync(file);
-		return stat.isFile();
-	} catch (e) {
-		return false;
-	}
-}
+let [isFile] = require('../util');
 
 module.exports = {
-	minOutputLimit: 1024,
-	minProcessLimit: 1,
-	minMemory: 0,
-	largeStack: true,
+	process: 1,
 	getFilename(file) {
 		return file + '.c';
+	},
+	getRunInfo(execFile) {
+		return {
+			executable: execFile,
+			parameters: []
+		};
 	},
 	async compile(file) {
 		let parsed = path.parse(file)
