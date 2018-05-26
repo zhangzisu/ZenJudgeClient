@@ -13,19 +13,21 @@ async function isFile(file) {
 }
 
 module.exports = {
-	process: 1,
-	getFilename(file) {
-		return file + '.cpp';
-	},
+	process: 5,
 	getRunInfo(execFile) {
+		let parsed = path.parse(execFile);
+
 		return {
-			executable: execFile,
-			parameters: []
+			executable: '/usr/bin/java',
+			parameters: ['/usr/bin/java', path.join(parsed.dir, parsed.name)]
 		};
+	},
+	getFilename(file) {
+		return file + '.java';
 	},
 	async compile(file) {
 		let parsed = path.parse(file)
-		let execFile = path.join(parsed.dir, parsed.name);
+		let execFile = path.join(parsed.dir, 'main.class');
 
 		if (await isFile(execFile)) {
 			await fs.unlinkAsync(execFile);
@@ -34,7 +36,7 @@ module.exports = {
 		let output;
 
 		try {
-			output = await child_process.execAsync(`g++ ${file} -o ${execFile} -O2 -lm -DONLINE_JUDGE -fdiagnostics-color=always 2>&1 || true`, {
+			output = await child_process.execAsync(`javac ${file} 2>&1 || true`, {
 				timeout: 10000
 			});
 		} catch (e) {

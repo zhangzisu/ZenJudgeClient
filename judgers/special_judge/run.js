@@ -47,7 +47,7 @@ function diff(filename1, filename2) {
 }
 
 let statusMap = [
-    'Unknown error',
+    'Unknown Error',
     'OK',
     'Time Limit Exceeded',
     'Memory Limit Exceeded',
@@ -164,9 +164,9 @@ module.exports = async function fun(
             runResult.score = parseInt(scoreStr) || 0;
             console.log(`SPJ Return score: ${scoreStr}`);
             if (runResult.score === 0) {
-                runResult.status = 'Wrong answer';
+                runResult.status = 'Wrong Answer';
             } else if (runResult.score !== 100) {
-                runResult.status = 'Partly correct';
+                runResult.status = 'Partially Correct';
             }
             if(await isFile(extraInfoRl)){
                 let spjMessage = fs.readFileSync(extraInfoRl).toString();
@@ -174,7 +174,7 @@ module.exports = async function fun(
             }
         } else {
             runResult.score = 0;
-            runResult.status = 'Judgement failed';
+            runResult.status = 'Judgement Failed';
         }
     } else runResult.score = 0;
     await fs.remove(tmpdir);

@@ -70,6 +70,15 @@ socket.on('task', async function (data) {
         );
         server_status = 'free';
     } else {
+        updateResult(task.judge_id, {
+            status: 'Testdata Downloading',
+            score: 0,
+            total_time: 0,
+            max_memory: 0,
+            case_num: 0,
+            compiler_output: '',
+            judger: config.client_name
+        });
         socket.emit('require_data', { pid: task.pid });
     }
 });

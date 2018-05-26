@@ -77,18 +77,18 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 	await callback(result);
 
 	if (!await verifyData(datainfo)) {
-		result.status = 'No testdata';
+		result.status = 'No Testdata';
 		result.pending = false;
 		await callback(result);
 		return;
 	}
 
-	let language = require(`./languages/${lang}`);
+	let language = require(`../languages/${lang}`);
 	let compile_result = await compile(code, language);
 	result.compiler_output = compile_result.output;
 
 	if (!compile_result.success) {
-		result.status = 'Compile error';
+		result.status = 'Compile Error';
 		result.pending = false;
 		await callback(result);
 		return;
