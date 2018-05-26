@@ -123,3 +123,8 @@ function parseData(datadir, dataconf) {
 }
 
 setInterval(uploadStatus, config.reflush_timeout);
+
+process.on('uncaughtException', function (err) {
+    console.error(err);
+    process.exit(1);
+});
