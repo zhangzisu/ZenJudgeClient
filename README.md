@@ -1,5 +1,5 @@
-# ZenJudgeServer2
-2nd gen judge server for Zen Online Judge
+# Zen Judge Client V2
+2nd gen judge client for Zen Online Judge
 
 ## Setup
   - Execute `git clone https://github.com/ZhangZisu/ZenJudgeClient.git` first.
