@@ -95,7 +95,7 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 	}
 
 	result.subtasks = [];
-
+	let tmpSubtaskResult = [];
 	let overallFinalStatus = null;
 
 	for (let s = 0; s < datainfo.testcases.length; ++s) {
@@ -173,13 +173,14 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 		if (!overallFinalStatus && subtaskResult.status !== 'Accepted') {
 			overallFinalStatus = subtaskResult.status;
 		}
-		result.subtasks.push(subtaskResult);
+		tmpSubtaskResult.push(subtaskResult);
 		result.score += subtaskResult.score;
 		await callback(result);
 	}
 
 	if (overallFinalStatus) result.status = overallFinalStatus;
 	else result.status = 'Accepted';
+	result.subtasks = tmpSubtaskResult;
 	result.pending = false;
 
 	await callback(result);
