@@ -121,6 +121,7 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 	result.subtasks = [];
 
 	let overallFinalStatus = null;
+	let tmpSubtaskResult = [];
 
 	for (let s = 0; s < datainfo.testcases.length; ++s) {
 		result.status = 'Running on #' + (s + 1);
@@ -180,7 +181,7 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 		let cvtScore = 0;
 		switch (subtask.type) {
 			case 'sum':
-				cvtScore = Math.min(Math.ceil((realScore / caseNum) / 100 * totalScore), totalScore);
+				cvtScore = Math.min(Math.ceil((realScore / subtask.cases.length) / 100 * totalScore), totalScore);
 				break;
 			case 'min':
 				cvtScore = Math.min(Math.ceil(realScore / 100 * totalScore), totalScore);;
@@ -197,13 +198,14 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 		if (!overallFinalStatus && subtaskResult.status !== 'Accepted') {
 			overallFinalStatus = subtaskResult.status;
 		}
-		result.subtasks.push(subtaskResult);
+		tmpSubtaskResult.push(subtaskResult);
 		result.score += subtaskResult.score;
 		await callback(result);
 	}
 
 	if (overallFinalStatus) result.status = overallFinalStatus;
 	else result.status = 'Accepted';
+	result.subtasks = tmpSubtaskResult;
 	result.pending = false;
 
 	await callback(result);

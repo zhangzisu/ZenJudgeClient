@@ -115,8 +115,8 @@ module.exports = async function fun(execFile, extraFiles, stdin, stdout, languag
     let result = await prog.waitForStop();
     console.log(JSON.stringify(result));
     let runResult = {};
-    runResult.time = result.time;
-    runResult.memory = result.memory;
+    runResult.time = Math.ceil(result.time / 1000);
+    runResult.memory = Math.ceil(result.memory / 1024);
     if (result.status !== 1) {
         runResult.status = statusMap[result.status];
     } else {

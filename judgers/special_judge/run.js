@@ -124,8 +124,8 @@ module.exports = async function fun(
     let result = await prog.waitForStop();
     console.log(JSON.stringify(result));
     let runResult = {};
-    runResult.time = result.time;
-    runResult.memory = result.memory;
+    runResult.time = Math.ceil(result.time / 1000);
+    runResult.memory = Math.ceil(result.memory / 1024);
     if (result.status !== 1) {
         runResult.status = statusMap[result.status];
     } else {
@@ -168,7 +168,7 @@ module.exports = async function fun(
             } else if (runResult.score !== 100) {
                 runResult.status = 'Partially Correct';
             }
-            if(await isFile(extraInfoRl)){
+            if (await isFile(extraInfoRl)) {
                 let spjMessage = fs.readFileSync(extraInfoRl).toString();
                 runResult.spj_message = spjMessage;
             }
