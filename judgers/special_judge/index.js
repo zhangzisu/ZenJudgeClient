@@ -68,6 +68,10 @@ async function judgeTestcase(language, spj_lang, execFile, extraFiles, spj_exec,
 		result.user_err = runResult.stderr;
 	}
 
+	if (runResult.spj_message) {
+		result.spj_message = runResult.spj_message;
+	}
+
 	result.status = runResult.status;
 	result.score = runResult.score;
 	return result;

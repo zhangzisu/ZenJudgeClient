@@ -161,12 +161,16 @@ module.exports = async function fun(
         console.log(JSON.stringify(result));
         if (result.status === 1 && await isFile(scoreFileRl)) {
             let scoreStr = fs.readFileSync(scoreFileRl).toString();
-            result.score = parseInt(scoreStr) || 0;
+            runResult.score = parseInt(scoreStr) || 0;
             console.log(`SPJ Return score: ${scoreStr}`);
-            if (result.score === 0) {
-                result.status = 'Wrong answer';
-            } else if (result.score !== 100) {
-                result.status = 'Partly correct';
+            if (runResult.score === 0) {
+                runResult.status = 'Wrong answer';
+            } else if (runResult.score !== 100) {
+                runResult.status = 'Partly correct';
+            }
+            if(await isFile(extraInfoRl)){
+                let spjMessage = fs.readFileSync(extraInfoRl).toString();
+                runResult.spj_message = spjMessage;
             }
         } else {
             runResult.score = 0;
