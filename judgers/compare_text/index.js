@@ -156,7 +156,7 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 		let cvtScore = 0;
 		switch (subtask.type) {
 			case 'sum':
-				cvtScore = Math.min(Math.ceil((realScore / caseNum) / 100 * totalScore), totalScore);
+				cvtScore = Math.min(Math.ceil((realScore / subtask.cases.length) / 100 * totalScore), totalScore);
 				break;
 			case 'min':
 				cvtScore = Math.min(Math.ceil(realScore / 100 * totalScore), totalScore);;
