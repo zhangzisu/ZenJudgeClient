@@ -91,28 +91,28 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 	await callback(result);
 
 	if (!await verifyData(datainfo)) {
-		result.status = 'No testdata';
+		result.status = 'No Testdata';
 		result.pending = false;
 		await callback(result);
 		return;
 	}
 
 	let spjlang = path.extname(datainfo.spj);
-	let spjlanguage = require(`./languages/${lang}`);
+	let spjlanguage = require(`../languages/${lang}`);
 	let spj_compare_result = await compile(fs.readFileSync(datainfo.spj).toString(), spjlanguage);
 	if (!spj_compare_result.success) {
-		result.status = 'Judgement failed';
+		result.status = 'Judgement Failed';
 		result.pending = false;
 		await callback(result);
 		return;
 	}
 
-	let language = require(`./languages/${lang}`);
+	let language = require(`../languages/${lang}`);
 	let compile_result = await compile(code, language);
 	result.compiler_output = compile_result.output;
 
 	if (!compile_result.success) {
-		result.status = 'Compile error';
+		result.status = 'Compile Error';
 		result.pending = false;
 		await callback(result);
 		return;

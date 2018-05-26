@@ -2,12 +2,20 @@ let Promise = require('bluebird');
 let path = require('path');
 let child_process = Promise.promisifyAll(require('child_process'));
 let fs = Promise.promisifyAll(require('fs'));
-let [isFile] = require('../util');
+
+async function isFile(file) {
+	try {
+		let stat = await fs.statAsync(file);
+		return stat.isFile();
+	} catch (e) {
+		return false;
+	}
+}
 
 module.exports = {
 	process: 1,
 	getFilename(file) {
-		return file + '.c';
+		return file + '.cpp';
 	},
 	getRunInfo(execFile) {
 		return {
@@ -24,8 +32,9 @@ module.exports = {
 		}
 
 		let output;
+
 		try {
-			output = await child_process.execAsync(`gcc ${file} -o ${execFile} -O2 -lm -DONLINE_JUDGE -fdiagnostics-color=always 2>&1 || true`, {
+			output = await child_process.execAsync(`g++ ${file} -o ${execFile} -O2 -lm -DONLINE_JUDGE -std=c++11 -fdiagnostics-color=always 2>&1 || true`, {
 				timeout: 10000
 			});
 		} catch (e) {
