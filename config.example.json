@@ -1,8 +1,15 @@
 {
-    "zen_addr": "http://127.0.0.1:5001",
+    "zen_addr": "http://127.0.0.1:5001/",
     "client_id": 1,
-    "client_name": "j1",
+    "client_name": "judge1",
     "token": "null",
     "reflush_timeout": 2000,
-    "tmp_dir": "/tmp"
+    "tmp_dir": "/tmp",
+    "sandbox": {
+        "chroot": "/opt/rootfs",
+        "mountProc": false,
+        "redirectBeforeChroot": false,
+        "user": "nobody",
+        "cgroup": "group-1"
+    }
 }
