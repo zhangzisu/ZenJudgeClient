@@ -56,7 +56,16 @@ let statusMap = [
     'Output Limit Exceeded'
 ];
 
-module.exports = async function fun(execFile, extraFiles, stdin, stdout, language, datainfo) {
+module.exports = async function fun(
+    execFile,
+    extraFiles,
+    spjExecFile,
+    spjExtraFiles,
+    stdin,
+    stdout,
+    language,
+    spjLanguage,
+    datainfo) {
     let tmpdir = path.join(config.tmp_dir, randomstring.generate());
     await prepareDir(tmpdir);
 
@@ -75,12 +84,12 @@ module.exports = async function fun(execFile, extraFiles, stdin, stdout, languag
     let execFileRl = path.join(binarydir_rl, path.basename(execFile));
     let execFileSb = path.join(binarydir, path.basename(execFile));
     execute('cp', execFile, execFileRl);
-    let stdinRl = path.join(workdir_rl, path.basename(stdin));
-    let stdinSb = path.join(workdir, path.basename(stdin));
+    let stdinRl = path.join(binarydir_rl, path.basename(stdin));
+    let stdinSb = path.join(binarydir, path.basename(stdin));
     execute('cp', stdin, stdinRl);
 
-    let out = path.join(workdir_rl, 'out');
-    let err = path.join(workdir_rl, 'err');
+    let out = path.join(workdir_rl, 'userout');
+    let err = path.join(workdir_rl, 'usererr');
     const runInfo = language.getRunInfo(execFileSb);
     let sandboxConfig = {
         executable: runInfo.executable,
@@ -90,8 +99,8 @@ module.exports = async function fun(execFile, extraFiles, stdin, stdout, languag
         process: language.process,
         stackSize: datainfo.memory_limit * 1024 * 1024,
         stdin: stdinSb,
-        stdout: path.join(workdir, 'out'),
-        stderr: path.join(workdir, 'err'),
+        stdout: path.join(workdir, 'userout'),
+        stderr: path.join(workdir, 'usererr'),
         workingDirectory: workdir,
         chroot: config.sandbox.chroot,
         mountProc: config.sandbox.mountProc,
@@ -111,7 +120,7 @@ module.exports = async function fun(execFile, extraFiles, stdin, stdout, languag
             }
         ]
     };
-    const prog = await sandbox.startSandbox(sandboxConfig);
+    let prog = await sandbox.startSandbox(sandboxConfig);
     let result = await prog.waitForStop();
     console.log(JSON.stringify(result));
     let runResult = {};
@@ -120,7 +129,7 @@ module.exports = async function fun(execFile, extraFiles, stdin, stdout, languag
     if (result.status !== 1) {
         runResult.status = statusMap[result.status];
     } else {
-        runResult.status = diff(stdout, out) ? 'Accepted' : 'Wrong Answer';
+        runResult.status = 'Accepted';
     }
     if (await isFile(out)) {
         runResult.output = shorterRead(out, 128)
@@ -128,6 +137,42 @@ module.exports = async function fun(execFile, extraFiles, stdin, stdout, languag
     if (await isFile(err)) {
         runResult.stderr = shorterRead(err, 128);
     }
+    if (runResult.status === 'Accepted') {
+        let spjRl = path.join(binarydir_rl, path.basename(spjExecFile));
+        let spjSb = path.join(binarydir, path.basename(spjExecFile));
+
+        execute('cp', spjExecFile, spjRl);
+        for (let file in spjExtraFiles) {
+            execute('cp', file.src, path.join(workdir_rl, file.fileName));
+        }
+        execute('cp', stdout, path.join(workdir_rl, 'answer'));
+        const spjRunInfo = spjLanguage.getRunInfo(spjSb);
+        sandboxConfig.executable = spjRunInfo.executable;
+        sandboxConfig.parameters = spjRunInfo.parameters;
+        let scoreFileSb = path.join(workdir, 'score');
+        let scoreFileRl = path.join(workdir_rl, 'score');
+        let extraInfoSb = path.join(workdir, 'message');
+        let extraInfoRl = path.join(workdir_rl, 'message');
+        delete sandboxConfig.stdin;
+        sandboxConfig.stdout = scoreFileSb;
+        sandboxConfig.stderr = extraInfoSb;
+        prog = await sandbox.startSandbox(sandboxConfig);
+        let result = await prog.waitForStop();
+        console.log(JSON.stringify(result));
+        if (result.status === 1 && await isFile(scoreFileRl)) {
+            let scoreStr = fs.readFileSync(scoreFileRl).toString();
+            result.score = parseInt(scoreStr) || 0;
+            console.log(`SPJ Return score: ${scoreStr}`);
+            if (result.score === 0) {
+                result.status = 'Wrong answer';
+            } else if (result.score !== 100) {
+                result.status = 'Partly correct';
+            }
+        } else {
+            runResult.score = 0;
+            runResult.status = 'Judgement failed';
+        }
+    } else runResult.score = 0;
     await fs.remove(tmpdir);
     return runResult;
 }

@@ -23,22 +23,32 @@ async function verifyData(datainfo) {
 }
 
 function shorterRead(fileName, maxLen) {
-    let fd = fs.openSync(fileName, 'r');
-    let len = fs.fstatSync(fd).size;
-    if (len > maxLen) {
-        let buf = Buffer.allocUnsafe(maxLen);
-        fs.readSync(fd, buf, 0, maxLen, 0);
-        let res = buf.toString() + '...';
-        fs.closeSync(fd);
-        return res;
-    } else {
-        fs.closeSync(fd);
-        return fs.readFileSync(fileName).toString();
-    }
+	let fd = fs.openSync(fileName, 'r');
+	let len = fs.fstatSync(fd).size;
+	if (len > maxLen) {
+		let buf = Buffer.allocUnsafe(maxLen);
+		fs.readSync(fd, buf, 0, maxLen, 0);
+		let res = buf.toString() + '...';
+		fs.closeSync(fd);
+		return res;
+	} else {
+		fs.closeSync(fd);
+		return fs.readFileSync(fileName).toString();
+	}
 }
 
-async function judgeTestcase(language, execFile, extraFiles, testcase, datainfo) {
-	let runResult = await run(execFile, extraFiles, testcase.input, testcase.output, language, datainfo);
+async function judgeTestcase(language, spj_lang, execFile, extraFiles, spj_exec, spj_extra, testcase, datainfo) {
+	let runResult = await run(
+		execFile,
+		extraFiles,
+		spj_exec,
+		spj_extra,
+		testcase.input,
+		testcase.output,
+		language,
+		spj_lang,
+		datainfo
+	);
 
 	let result = {
 		status: '',
@@ -59,7 +69,7 @@ async function judgeTestcase(language, execFile, extraFiles, testcase, datainfo)
 	}
 
 	result.status = runResult.status;
-	result.score = runResult.status === 'Accepted' ? 100 : 0;
+	result.score = runResult.score;
 	return result;
 }
 
@@ -78,6 +88,16 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 
 	if (!await verifyData(datainfo)) {
 		result.status = 'No testdata';
+		result.pending = false;
+		await callback(result);
+		return;
+	}
+
+	let spjlang = path.extname(datainfo.spj);
+	let spjlanguage = require(`./languages/${lang}`);
+	let spj_compare_result = await compile(fs.readFileSync(datainfo.spj).toString(), spjlanguage);
+	if (!spj_compare_result.success) {
+		result.status = 'Judgement failed';
 		result.pending = false;
 		await callback(result);
 		return;
@@ -130,7 +150,7 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 			}
 		} else {
 			for (let testcase of subtask.cases) {
-				let caseResult = await judgeTestcase(language, compile_result.execFile, compile_result.extraFiles, testcase, datainfo);
+				let caseResult = await judgeTestcase(language, spjlanguage, compile_result.execFile, compile_result.extraFiles, spj_compare_result.execFile, spj_compare_result.extraFiles, testcase, datainfo);
 
 				switch (subtask.type) {
 					case 'min':
