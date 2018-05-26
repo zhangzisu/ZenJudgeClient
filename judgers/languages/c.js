@@ -2,7 +2,14 @@ let Promise = require('bluebird');
 let path = require('path');
 let child_process = Promise.promisifyAll(require('child_process'));
 let fs = Promise.promisifyAll(require('fs'));
-let [isFile] = require('../util');
+async function isFile(file) {
+	try {
+		let stat = await fs.statAsync(file);
+		return stat.isFile();
+	} catch (e) {
+		return false;
+	}
+}
 
 module.exports = {
 	process: 1,
