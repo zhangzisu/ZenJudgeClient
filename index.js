@@ -87,7 +87,8 @@ const zipPath = "tmp.zip";
 ss(socket).on('file', async function (stream, data) {
     if (await fsExistsAsync(zipPath)) await fs.unlinkAsync(zipPath);
     let dir = path.join(__dirname, 'data', task.datahash);
-    stream.pipe(fs.createWriteStream(zipPath)).on('finish', async function () {
+    console.log('Downloading testdata...');
+    stream.pipe(fs.createWriteStream(zipPath)).on('finish', async () => {
         var Task = new Zip();
         var decompress = new Promise(function (resolve, reject) {
             Task.extractFull(zipPath, dir)
@@ -103,6 +104,18 @@ ss(socket).on('file', async function (stream, data) {
             task.language,
             new Function('result', callback_code)
         );
+        server_status = 'free';
+    }).on('error', () => {
+        if (await fsExistsAsync(zipPath)) await fs.unlinkAsync(zipPath);
+        updateResult(task.judge_id, {
+            status: 'System Error',
+            score: 0,
+            total_time: 0,
+            max_memory: 0,
+            case_num: 0,
+            compiler_output: '',
+            judger: config.client_name
+        });
         server_status = 'free';
     });
 });

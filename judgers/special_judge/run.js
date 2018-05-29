@@ -84,8 +84,8 @@ module.exports = async function fun(
     let execFileRl = path.join(binarydir_rl, path.basename(execFile));
     let execFileSb = path.join(binarydir, path.basename(execFile));
     execute('cp', execFile, execFileRl);
-    let stdinRl = path.join(binarydir_rl, path.basename(stdin));
-    let stdinSb = path.join(binarydir, path.basename(stdin));
+    let stdinRl = path.join(binarydir_rl, 'input');
+    let stdinSb = path.join(binarydir, 'input');
     execute('cp', stdin, stdinRl);
 
     let out = path.join(workdir_rl, 'userout');
