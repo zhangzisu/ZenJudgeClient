@@ -105,7 +105,7 @@ ss(socket).on('file', async function (stream, data) {
             new Function('result', callback_code)
         );
         server_status = 'free';
-    }).on('error', () => {
+    }).on('error', async () => {
         if (await fsExistsAsync(zipPath)) await fs.unlinkAsync(zipPath);
         updateResult(task.judge_id, {
             status: 'System Error',
