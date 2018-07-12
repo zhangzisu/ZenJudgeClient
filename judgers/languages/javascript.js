@@ -25,7 +25,7 @@ module.exports = {
 	},
 	async compile(file) {
 		let parsed = path.parse(file);
-		let execFile = path.join(parsed.dir, parsed.name + '.js');
+		let execFile = path.join(parsed.dir, 'main.js');
 		if (await isFile(execFile)) {
 			await fs.unlinkAsync(execFile);
 		}
