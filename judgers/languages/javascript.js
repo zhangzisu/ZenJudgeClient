@@ -27,7 +27,7 @@ module.exports = {
 		return {
 			success: await isFile(file),
 			execFile: file,
-			output: output
+			output: 'Javascript is the best language.'
 		};
 	}
 };
