@@ -24,9 +24,15 @@ module.exports = {
 		return file + '.js';
 	},
 	async compile(file) {
+		let parsed = path.parse(file);
+		let execFile = path.join(parsed.dir, parsed.name + '.js');
+		if (await isFile(execFile)) {
+			await fs.unlinkAsync(execFile);
+		}
+		await fs.writeFileAsync(execFile, await fs.readFileAsync(file));
 		return {
-			success: await isFile(file),
-			execFile: file,
+			success: await isFile(execFile),
+			execFile: execFile,
 			output: 'Javascript is the best language.'
 		};
 	}
