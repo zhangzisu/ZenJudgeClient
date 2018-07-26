@@ -122,11 +122,13 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 		}
 
 		if (depend) {
-			let deps = result.subtask[deps].status;
-			if (deps !== 'Accepted') {
-				subtaskResult.score = 0;
-				subtaskResult.status = 'Skipped';
-				subtaskResult.pending = false;
+			for (let dep of depend) {
+				let deps = result.subtask[dep].status;
+				if (deps !== 'Accepted') {
+					subtaskResult.score = 0;
+					subtaskResult.status = 'Skipped';
+					subtaskResult.pending = false;
+				}
 			}
 		} else {
 			for (let testcase of subtask.cases) {
