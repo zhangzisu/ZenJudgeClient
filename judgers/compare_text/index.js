@@ -130,7 +130,8 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 					subtaskResult.pending = false;
 				}
 			}
-		} else {
+		}
+		if (subtaskResult.status !== 'Skipped') {
 			for (let testcase of subtask.cases) {
 				let caseResult = await judgeTestcase(language, compile_result.execFile, compile_result.extraFiles, testcase, datainfo);
 
@@ -153,21 +154,23 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 				if (subtask.type !== 'sum' && (caseResult.score < 1))
 					break;
 			}
+			
+			subtaskResult.case_num = caseNum;
+			let cvtScore = 0;
+			switch (subtask.type) {
+				case 'sum':
+					cvtScore = Math.min(Math.ceil((realScore / subtask.cases.length) / 100 * totalScore), totalScore);
+					break;
+				case 'min':
+					cvtScore = Math.min(Math.ceil(realScore / 100 * totalScore), totalScore);;
+					break;
+				case 'mul':
+					cvtScore = Math.min(Math.ceil(realScore * totalScore), totalScore);
+					break;
+			}
+			subtaskResult.score = cvtScore;
 		}
-		subtaskResult.case_num = caseNum;
-		let cvtScore = 0;
-		switch (subtask.type) {
-			case 'sum':
-				cvtScore = Math.min(Math.ceil((realScore / subtask.cases.length) / 100 * totalScore), totalScore);
-				break;
-			case 'min':
-				cvtScore = Math.min(Math.ceil(realScore / 100 * totalScore), totalScore);;
-				break;
-			case 'mul':
-				cvtScore = Math.min(Math.ceil(realScore * totalScore), totalScore);
-				break;
-		}
-		subtaskResult.score = cvtScore;
+		
 
 		if (subtaskFinalStatus) subtaskResult.status = subtaskFinalStatus;
 		else subtaskResult.status = 'Accepted';
