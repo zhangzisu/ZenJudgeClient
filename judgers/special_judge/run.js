@@ -57,6 +57,7 @@ let statusMap = [
 ];
 
 module.exports = async function fun(
+    code, 
     execFile,
     extraFiles,
     spjExecFile,
@@ -141,6 +142,7 @@ module.exports = async function fun(
         let spjRl = path.join(binarydir_rl, path.basename(spjExecFile));
         let spjSb = path.join(binarydir, path.basename(spjExecFile));
 
+        execute('cp', code, path.join(spjRl, 'code'));
         execute('cp', spjExecFile, spjRl);
         for (let file in spjExtraFiles) {
             execute('cp', file.src, path.join(workdir_rl, file.fileName));
