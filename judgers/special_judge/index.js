@@ -101,6 +101,7 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 	let spjlanguage = require(`../languages/${lang}`);
 	let spj_compare_result = await compile(fs.readFileSync(datainfo.spj).toString(), spjlanguage);
 	if (!spj_compare_result.success) {
+		console.log('SPJ CE');
 		result.status = 'Judgement Failed';
 		result.pending = false;
 		await callback(result);
