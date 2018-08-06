@@ -173,6 +173,7 @@ module.exports = async function fun(
                 runResult.spj_message = spjMessage;
             }
         } else {
+            console.log(sandboxConfig);
             runResult.score = 0;
             runResult.status = 'Judgement Failed';
         }
