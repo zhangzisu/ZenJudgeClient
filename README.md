@@ -1,4 +1,7 @@
 # Zen Judge Client V2
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/ZhangZisu/ZenJudgeClient.svg)](https://greenkeeper.io/)
+
 2nd gen judge client for Zen Online Judge
 
 ## Setup
