@@ -12,9 +12,9 @@
   "license": "Apache-2.0",
   "dependencies": {
     "bluebird": "^3.5.1",
-    "fs": "0.0.1-security",
-    "fs-extra": "^6.0.1",
-    "node-7z": "^0.4.0",
+    "fs": "0.0.2",
+    "fs-extra": "^7.0.1",
+    "node-7z": "^1.0.0",
     "path": "^0.12.7",
     "randomstring": "^1.1.5",
     "shell-escape": "^0.2.0",
