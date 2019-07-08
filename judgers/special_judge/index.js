@@ -37,8 +37,9 @@ function shorterRead(fileName, maxLen) {
 	}
 }
 
-async function judgeTestcase(language, spj_lang, execFile, extraFiles, spj_exec, spj_extra, testcase, datainfo) {
+async function judgeTestcase(code, language, spj_lang, execFile, extraFiles, spj_exec, spj_extra, testcase, datainfo) {
 	let runResult = await run(
+		code,
 		execFile,
 		extraFiles,
 		spj_exec,
@@ -148,15 +149,18 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 		}
 
 		if (depend) {
-			let deps = result.subtask[deps].status;
-			if (deps !== 'Accepted') {
-				subtaskResult.score = 0;
-				subtaskResult.status = 'Skipped';
-				subtaskResult.pending = false;
+			for (let dep of depend) {
+				let deps = result.subtask[deps].status;
+				if (deps !== 'Accepted') {
+					subtaskResult.score = 0;
+					subtaskResult.status = 'Skipped';
+					subtaskResult.pending = false;
+				}
 			}
-		} else {
+		}
+		if (subtaskResult.status !== 'Skipped') {
 			for (let testcase of subtask.cases) {
-				let caseResult = await judgeTestcase(language, spjlanguage, compile_result.execFile, compile_result.extraFiles, spj_compare_result.execFile, spj_compare_result.extraFiles, testcase, datainfo);
+				let caseResult = await judgeTestcase(code, language, spjlanguage, compile_result.execFile, compile_result.extraFiles, spj_compare_result.execFile, spj_compare_result.extraFiles, testcase, datainfo);
 
 				switch (subtask.type) {
 					case 'min':
@@ -177,22 +181,22 @@ module.exports = async function judge(datainfo, code, lang, callback) {
 				if (subtask.type !== 'sum' && (caseResult.score < 1))
 					break;
 			}
+			subtaskResult.case_num = caseNum;
+			let cvtScore = 0;
+			switch (subtask.type) {
+				case 'sum':
+					cvtScore = Math.min(Math.ceil((realScore / subtask.cases.length) / 100 * totalScore), totalScore);
+					break;
+				case 'min':
+					cvtScore = Math.min(Math.ceil(realScore / 100 * totalScore), totalScore);;
+					break;
+				case 'mul':
+					cvtScore = Math.min(Math.ceil(realScore * totalScore), totalScore);
+					break;
+			}
+			subtaskResult.score = cvtScore;
 		}
-		subtaskResult.case_num = caseNum;
-		let cvtScore = 0;
-		switch (subtask.type) {
-			case 'sum':
-				cvtScore = Math.min(Math.ceil((realScore / subtask.cases.length) / 100 * totalScore), totalScore);
-				break;
-			case 'min':
-				cvtScore = Math.min(Math.ceil(realScore / 100 * totalScore), totalScore);;
-				break;
-			case 'mul':
-				cvtScore = Math.min(Math.ceil(realScore * totalScore), totalScore);
-				break;
-		}
-		subtaskResult.score = cvtScore;
-
+		
 		if (subtaskFinalStatus) subtaskResult.status = subtaskFinalStatus;
 		else subtaskResult.status = 'Accepted';
 		subtaskResult.pending = false;
